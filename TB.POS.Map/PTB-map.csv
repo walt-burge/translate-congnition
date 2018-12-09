@@ -1,0 +1,31 @@
+cat,pos,desc
+1,NN,Temporal noun
+1,NNS,Temporal noun
+2,NN,verbal/proper noun
+2,NNP,verbal/proper noun
+2,NNPS,verbal/proper noun
+3,PRP,pronoun
+3,WP,pronoun
+4,MD,Modal verb
+5,VB,Other verb
+5,VBF,Other verb
+5,VBG,Other verb
+5,VBN,Other verb
+5,VBP,Other verb
+5,VBZ,Other verb
+6,RB,Adverb
+6,RBR,Adverb
+6,RBS,Adverb
+6,WRB,Adverb
+7,IN,Preposition
+8,DT,Determiner
+8,WDT,Determiner
+8,PDT,Determiner
+9,CD,Number
+10,CC,Coord. Conj
+11,IN,Subord. Conj
+12,UH,Interjection
+13,JJ,Noun-modifier
+13,JJR,Noun-modifier
+13,JJS,Noun-modifier
+14,FW,Foreign Words
