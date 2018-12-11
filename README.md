@@ -1,5 +1,9 @@
 # translate-cognition
 
+##### Note: This README.md provides details reflecting the current state in the w266.deadline.submission branch of this repository, not the master.
+
+
+
 Generation of features and preparation for preprocessing of language text to optimize translation to a target language. The languages processed by the included modules are English and Mandarin Chinese. Sources for these languages, for development purposes, are as follows:
 
 - [English News Text Treebank: Penn Treebank Revised](https://catalog.ldc.upenn.edu/LDC2015T13)
