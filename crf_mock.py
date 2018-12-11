@@ -1,10 +1,26 @@
 import random as rand
 from random import random
 import numpy as np
+import os
 import math
+from nltk.parse.stanford import StanfordParser
+from nltk import ParentedTree
+
+
+stanford_parser_dir = './tools/stanford-parser-full-2018-10-17'
+path_to_models = os.path.join(stanford_parser_dir, "stanford-parser-3.9.2-models.jar")
+path_to_jar = os.path.join(stanford_parser_dir, "stanford-parser.jar")
 
 # Parameters used.
 MODEL_PATH = 'model/model.ckpt'
+
+example_sentences = [
+    "This is a test of the emergency broadcasting system.",
+    "This is only a test.",
+    "Had this been a real emergency, you would have received instructions.",
+    "Test is just a Word you can use to Mean something big.",
+    "Bigger, that is, and more Important."
+]
 
 word_ind_map = {}
 
@@ -20,10 +36,10 @@ def is_word_ind_head(word_ind):
 
 # Get a word index from the map
 def get_word_ind(word):
-    if word.lower() not in word_ind_map.keys():
-        word_ind_map[word.lower()] = (len(word_ind_map.values()) + 1, is_word_head(word))
+    if word not in word_ind_map.keys():
+        word_ind_map[word] = (len(word_ind_map.values()) + 1, is_word_head(word))
 
-    return word_ind_map[word.lower()]
+    return word_ind_map[word]
 
 
 def classify(w_before, word, w_after):
@@ -50,24 +66,23 @@ def get_chunk(words, index):
     if not words[index][1]:
         for ind, word in enumerate(words):
             # If a head word is encountered, reset the chunk to start with it
-            if word[1]:
-                parent_visible = True
-                chunk = []
-            if parent_visible:
+            if is_word_ind_head(word):
+                if not parent_visible:
+                    parent_visible = True
+                    chunk = []
+                else:
+                    break
+            if parent_visible and not is_word_ind_head(word):
                 chunk.append(word)
                 if ind == index and parent_visible:
                     chunk_ind = len(chunk)-1
-
-            if parent_visible and len(chunk)>1 and is_word_ind_head(chunk[-1]):
-                chunk = [word for word in chunk[0:-2]]
-                break
 
     return chunk, chunk_ind
 
 
 def classify_window(words, index):
 
-    print("classify_window(")
+    #print("classify_window(")
     msg = ""
     for word in words:
         msg = msg + str(word)
@@ -86,14 +101,18 @@ def classify_window(words, index):
 
     print("classify_window() : chunk({}), chunk_ind: {}".format(len(chunk), chunk_ind))
 
-    if len(chunk) > 0:
+    if len(chunk) > 1:
         if chunk_ind > 0:
             w_before = chunk[chunk_ind - 1]
 
         if chunk_ind < len(chunk) - 1:
             w_after = chunk[chunk_ind + 1]
 
-        classification = classify(w_before, word, w_after)
+        count_words = len(chunk)-1
+        if chunk_ind > int(count_words/2):
+            classification = 1
+        else:
+            classification = -1
     return classification
 
 
@@ -101,7 +120,20 @@ def classify_window(words, index):
 def get_sequence(sentence):
 
     print("get_sequence({})".format(sentence))
-    # Create a sequence of random numbers in [0,1].
+    parser = StanfordParser(path_to_models, path_to_jar)
+
+    # print("\n\nPhrase Structure Parsing Result - will only print NPs (Noun Phrases)")
+    # parsed_sentence = parser.raw_parse(sentence)
+    # traverse_tree(parsed_sentence)
+
+    print("\n\nPhrase Structure Parsing Result - will print in a tree format and draw it")
+    parsed_sentence = parser.raw_parse(sentence)
+    tree = parsed_sentence.__next__()
+    print(tree)
+
+    flat_tree = str(tree).replace('\n', '')
+
+    p_tree = ParentedTree.convert(tree)
     X = [get_word_ind(word) for word in sentence.split()]
 
     # Determine the class outcome for each item in cumulative sequence.
@@ -112,13 +144,6 @@ def get_sequence(sentence):
 
 # Create n examples with random sequence lengths between 5 and 15.
 def get_examples():
-    example_sentences = [
-        "This is a test of the emergency broadcasting system.",
-        "This is only a test.",
-        "Had this been a real emergency, you would have received instructions.",
-        "Test is just a Word you can use to Mean something big.",
-        "Bigger, that is, and more Important."
-    ]
     X_list = []
     y_list = []
     for sentence in example_sentences:
@@ -155,5 +180,6 @@ def batch(data, labels, sequence_lengths, batch_size, input_size):
 
 X, y = get_examples()
 
+print("\nResults:\n")
 for ind, input in enumerate(X):
-    print("Sentence: {}, classification: {}".format(input, y[ind]))
+    print("Sentence: {}, classification: {}".format(example_sentences[ind], y[ind]))

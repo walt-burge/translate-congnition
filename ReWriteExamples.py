@@ -2,7 +2,7 @@ import pandas
 import os
 import tensorflow as tf
 
-DATA_DIR = '/Users/burgew/Pre-Trained/translate-cognition/'
+DATA_DIR = '.'
 
 TRAIN_DATA_FILE = 'X_train.csv'
 TEST_DATA_FILE = 'X_test.csv'

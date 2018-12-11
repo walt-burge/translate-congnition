@@ -14,7 +14,7 @@ import nltk
 from nltk import ParentedTree
 from node_feature_parser import NodeFeatureParser, setup_tb_map
 
-DATA_DIR = '/Users/burgew/Pre-Trained/translate-cognition'
+DATA_DIR = '.'
 
 NUMERIC_COLUMNS = [
         'root',
@@ -185,22 +185,31 @@ def main():
     parser = argparse.ArgumentParser(description='Generate CRF features from selected Treebank.')
     parser.add_argument('tb', type=str, choices=['ctb','ptb'],
                         help='Treebank for feature generation ("ctb" for Chinese Treebank or "ptb" for Penn Treebank')
-
-
+    parser.add_argument('--data', type=str, help='Folder containing subdirectories ./eng_news_txt_tbnk-ptb_revised/ and ./ctb5.1_preproc. These folders contain the English and Chinese treebanks as specified in README.md. Note that the Chinese Treebank must be preprocessed prior to use.')
 
     args = parser.parse_args()
     tb_type = args.tb
 
     tb_map = setup_tb_map(tb_type)
 
+    global DATA_DIR
     global model
 
+    DATA_DIR = args.data
+
     if tb_type == "ptb":
-        sentence_count = get_tb_sentence_count(macbook_ptb_token_path, '*1.txt')
-        parsed_sentences = [sentence for sentence in get_treebank_sentences(macbook_ptb_path, '*1.tree')]
+        tb_token_path = os.path.join(DATA_DIR, 'eng_news_txt_tbnk-ptb_revised/data/tokenized_source/*/')
+        tb_path = os.path.join(DATA_DIR, 'eng_news_txt_tbnk-ptb_revised/data/penntree/*/')
+        tb_sentence_count_files = '*.txt'
+        tb_parsed_sentence_files = '*.tree'
     else:
-        sentence_count = get_tb_sentence_count(macbook_ctb_path, '*1.txt')
-        parsed_sentences = [sentence for sentence in get_treebank_sentences(macbook_ctb_path, '*1.txt')]
+        # tb_type == "ctb":
+        tb_token_path = os.path.join(DATA_DIR, 'ctb5.1_preproc')
+        tb_sentence_count_files = '*.txt'
+        tb_parsed_sentence_files = '*.txt'
+
+    sentence_count = get_tb_sentence_count(tb_token_path, tb_sentence_count_files)
+    parsed_sentences = [sentence for sentence in get_treebank_sentences(tb_path, tb_parsed_sentence_files)]
 
     print(parsed_sentences[0:5])
     print("Parsed sentences: ", len(parsed_sentences))
@@ -217,7 +226,7 @@ def main():
         csv_writer = csv.writer(file)
         csv_writer.writerows(X_test)
 
-    for x in X_test[0:100]:
+    for x in X_test[0:10]:
         print("{}:{}, {}:{}, {}:{}, {}:{}, {}:{}, {}:{}, {}:{}, {}:{}, {}:{}, {}:{} {}:{}, {}:{}, {}:{}, {}:{}, {}:{}, {}:{}, {}:{}, {}:{}".
               format("root", x[0],"frst", x[1],"last",x[2],"prv_cat",x[3],"pos_cat",x[4],"nxt_cat",x[5],
                      "s_seq", x[6], "n_p_seq", x[7], "prnt_wt", x[8],
@@ -236,17 +245,7 @@ def main():
 
     print("")
 
-    #model = CRF():1
-
-    #model.verbose = True
-    #model.fit(X_train, y_train)
-
     sentence = [char for char in '表演基本上很精彩--我只对她的技巧稍有意见']
-
-    #print(pos_pos(sentence))
-
-    #y_pred = model.predict(X_test)
-    #print(metrics.flat_accuracy_score(y_test, y_pred))
 
 
 main()
