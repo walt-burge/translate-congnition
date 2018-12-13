@@ -219,10 +219,10 @@ def main():
     X_train, X_test \
         = transform_to_datasets(parsed_sentences, cutoff, tb_map)
 
-    with open('X_train.csv', 'w') as file:
+    with open(os.path.join(DATA_DIR, 'X_train.csv'), 'w') as file:
         csv_writer = csv.writer(file)
         csv_writer.writerows(X_train)
-    with open('X_test.csv', 'w') as file:
+    with open(os.path.join(DATA_DIR, 'X_test.csv'), 'w') as file:
         csv_writer = csv.writer(file)
         csv_writer.writerows(X_test)
 

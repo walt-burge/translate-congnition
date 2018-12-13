@@ -1,3 +1,4 @@
+import argparse
 import csv
 import io
 import os
@@ -27,7 +28,7 @@ def convert_num_to_tf_file(data_dir, num_input_file, data_set='train'):
         with io.open(num_input_file, "r", encoding='ISO-8859-1') as f:
             line = f.readline()
             while line != None and line != "":
-                arr = line.split("\t")
+                arr = line.split(",")
                 is_root, is_first, is_last  = int(arr[0]), int(arr[1]), int(arr[2])
                 prev_cat, pos_cat, next_cat = int(arr[3]), int(arr[4]), int(arr[5])
                 s_seq, n_p_seq, par_wt = float(arr[6]), float(arr[7]), float(arr[8])
@@ -47,13 +48,23 @@ def convert_num_to_tf_file(data_dir, num_input_file, data_set='train'):
                 example.features.feature["prev_cat"].int64_list.value.extend(prev_cat_arr)
                 example.features.feature["pos_cat"].int64_list.value.extend(pos_cat_arr)
                 example.features.feature["next_cat"].int64_list.value.append(next_cat_arr)
-                example.features.feature["w_sequence"].float32_list.value.append(s_seq_arr)
-                example.features.feature["w_rel_sequence"].float32_list.value.append(n_p_seq_arr)
+                example.features.feature["s_sequence"].int64_list.value.append(s_seq_arr)
+                example.features.feature["n_p_sequence"].float32_list.value.append(n_p_seq_arr)
                 example.features.feature["p_weight"].float32_list.value.append(par_wt_arr)
                 writer.write(example.SerializeToString())
                 line = f.readline()
 
 def main():
+    parser = argparse.ArgumentParser(description='Generate CRF features from selected Treebank.')
+    parser.add_argument('--data', type=str,
+                        help='Folder containing subdirectories ./eng_news_txt_tbnk-ptb_revised/ and ./ctb5.1_preproc. These folders contain the English and Chinese treebanks as specified in README.md. Note that the Chinese Treebank must be preprocessed prior to use.')
+
+    args = parser.parse_args()
+
+    global DATA_DIR
+
+    DATA_DIR = args.data
+
     convert_num_to_tf_file(DATA_DIR, TRAIN_DATA_FILE, data_set='train')
     convert_num_to_tf_file(DATA_DIR, TEST_DATA_FILE, data_set='test')
     

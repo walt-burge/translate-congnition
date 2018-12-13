@@ -1,3 +1,4 @@
+import argparse
 import pandas
 import os
 import tensorflow as tf
@@ -35,30 +36,8 @@ nxt_wrd_ex = tf.constant("", dtype=tf.string)
 wrd_ex = tf.constant("", dtype=tf.string)
 seq_length_ex = tf.constant(0, dtype=tf.int32)
 
-word = tf.feature_column.categorical_column_with_vocabulary_file( key='wrd', vocabulary_file='./word_vocab.txt',
-                                                                    vocabulary_size=500, num_oov_buckets=5)
-pos = tf.feature_column.categorical_column_with_vocabulary_file(
-    key='pos', vocabulary_file='./pos_vocab.txt', vocabulary_size=500,
-    num_oov_buckets=5)
-parent = tf.feature_column.categorical_column_with_vocabulary_file( key='prnt', vocabulary_file='./pos_vocab.txt',
-                                                     vocabulary_size=500, num_oov_buckets=5)
-prev_pos = tf.feature_column.categorical_column_with_vocabulary_file( key='prv_pos', vocabulary_file='./pos_vocab.txt',
-                                                       vocabulary_size=500, num_oov_buckets=5)
-next_pos = tf.feature_column.categorical_column_with_vocabulary_file( key='nxt_pos', vocabulary_file='./pos_vocab.txt',
-                                                       vocabulary_size=500, num_oov_buckets=5)
-s_seq = tf.feature_column.numeric_column( 's_seq', dtype=tf.int32)
 
-record_defaults = [is_root_ex, is_first_ex, is_last_ex,
-                   prev_cat_ex, pos_cat_ex, next_cat_ex,
-                   sentence_seq_ex, node_sentence_seq_ex, parent_weight_ex,
-                   grndprnt_ex, prnt_ex, pos_ex, prv_pos_ex, nxt_pos_ex, prv_wrd_ex, nxt_wrd_ex, wrd_ex, seq_length_ex]
-
-smaller_defaults = [is_root_ex, is_first_ex, is_last_ex,
-                   prev_cat_ex, pos_cat_ex, next_cat_ex,
-                   sentence_seq_ex, node_sentence_seq_ex, parent_weight_ex,
-                   pos_ind_ex, pos_ind_ex, pos_ind_ex, pos_ind_ex, pos_ind_ex, prv_wrd_ex, nxt_wrd_ex, wrd_ex]
-
-def create_file_reader_ops(filename_queue):
+def create_file_reader_ops(filename_queue, record_defaults):
     reader = tf.TextLineReader(skip_header_lines=False)
     _, csv_row = reader.read(filename_queue)
     is_root, is_first, is_last, prev_cat, pos_cat, next_cat, s_seq, n_p_seq, parent_wt, \
@@ -69,7 +48,7 @@ def create_file_reader_ops(filename_queue):
     return features, word
 
 
-def create_text_dataset(filepath, pos_index, word_index, perform_shuffle=False, repeat_count=1):
+def create_text_dataset(filepath, pos_index, word_index, record_defaults, perform_shuffle=False, repeat_count=1):
     def decode_ln(line):
         is_root, is_first, is_last, prev_cat, pos_cat, next_cat, s_seq, n_p_seq, parent_wt, \
         grndprnt, prnt, pos, prv_pos, nxt_pos, prv_wrd, nxt_wrd, word, seq_length =\
@@ -110,6 +89,20 @@ word_vocab_file = os.path.join(DATA_DIR, 'word_vocab.txt')
 
 
 def main():
+    parser = argparse.ArgumentParser(description='Generate CRF features from selected Treebank.')
+    parser.add_argument('--data', type=str, help='Folder containing subdirectories ./eng_news_txt_tbnk-ptb_revised/ and ./ctb5.1_preproc. These folders contain the English and Chinese treebanks as specified in README.md. Note that the Chinese Treebank must be preprocessed prior to use.')
+
+    args = parser.parse_args()
+
+    global DATA_DIR
+    global WORD_VOCAB_PATH
+    global POS_VOCAB_PATH
+    global model
+
+    DATA_DIR = args.data
+
+    WORD_VOCAB_PATH = os.path.join(DATA_DIR, 'word_vocab.txt')
+    POS_VOCAB_PATH = os.path.join(DATA_DIR, 'pos_vocab.txt')
 
     rows = 0
     #next_batch = create_text_dataset(TEST_DATA_FILE, pos_index, True)
@@ -117,18 +110,41 @@ def main():
     #pos_columns = create_pos_feature_columns(POS_VARS)
     #word_columns = create_word_feature_columns(WORD_VARS)
 
+    word = tf.feature_column.categorical_column_with_vocabulary_file(key='wrd', vocabulary_file=WORD_VOCAB_PATH,
+                                                                     vocabulary_size=500, num_oov_buckets=5)
+    pos = tf.feature_column.categorical_column_with_vocabulary_file(
+        key='pos', vocabulary_file=os.path.join(DATA_DIR, POS_VOCAB_PATH), vocabulary_size=500,
+        num_oov_buckets=5)
+    parent = tf.feature_column.categorical_column_with_vocabulary_file(key='prnt', vocabulary_file=POS_VOCAB_PATH,
+                                                                       vocabulary_size=500, num_oov_buckets=5)
+    prev_pos = tf.feature_column.categorical_column_with_vocabulary_file(key='prv_pos', vocabulary_file=POS_VOCAB_PATH,
+                                                                         vocabulary_size=500, num_oov_buckets=5)
+    next_pos = tf.feature_column.categorical_column_with_vocabulary_file(key='nxt_pos', vocabulary_file=POS_VOCAB_PATH,
+                                                                         vocabulary_size=500, num_oov_buckets=5)
+    s_seq = tf.feature_column.numeric_column('s_seq', dtype=tf.int32)
+
+    record_defaults = [is_root_ex, is_first_ex, is_last_ex,
+                       prev_cat_ex, pos_cat_ex, next_cat_ex,
+                       sentence_seq_ex, node_sentence_seq_ex, parent_weight_ex,
+                       grndprnt_ex, prnt_ex, pos_ex, prv_pos_ex, nxt_pos_ex, prv_wrd_ex, nxt_wrd_ex, wrd_ex,
+                       seq_length_ex]
+
+    smaller_defaults = [is_root_ex, is_first_ex, is_last_ex,
+                        prev_cat_ex, pos_cat_ex, next_cat_ex,
+                        sentence_seq_ex, node_sentence_seq_ex, parent_weight_ex,
+                        pos_ind_ex, pos_ind_ex, pos_ind_ex, pos_ind_ex, pos_ind_ex, prv_wrd_ex, nxt_wrd_ex, wrd_ex]
 
     #feature_columns = [numeric_columns + pos_columns + word_columns]
 
     with tf.Session() as sess:
         tf.global_variables_initializer().run()
 
-        pos_index = tf.contrib.lookup.index_table_from_file("./pos_vocab.txt")
-        word_index = tf.contrib.lookup.index_table_from_file("./word_vocab.txt")
+        pos_index = tf.contrib.lookup.index_table_from_file(POS_VOCAB_PATH)
+        word_index = tf.contrib.lookup.index_table_from_file(WORD_VOCAB_PATH)
 
         tf.tables_initializer().run()
 
-        dataset = create_text_dataset(os.path.join(DATA_DIR, TRAIN_DATA_FILE), pos_index, word_index)
+        dataset = create_text_dataset(os.path.join(DATA_DIR, TRAIN_DATA_FILE), pos_index, word_index, record_defaults)
         iterator = dataset.make_initializable_iterator('train_data')
         batch_features, batch_labels = iterator.get_next()
 
